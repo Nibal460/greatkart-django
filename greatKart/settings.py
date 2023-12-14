@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'accounts',
     'store',
     'carts',
+    'orders'
 ]
 
 MIDDLEWARE = [
@@ -145,7 +146,8 @@ MESSAGE_TAGS = {
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT =587
 EMAIL_HOST_USER = 'nibal.tinawi2@gmail.com'
-EMAIL_HOST_PASSWORD ='1234567'
+EMAIL_HOST_PASSWORD ='epmr eqtw hvnw jdpk'
+#THIRD_PARTY_APP_PASSWORD = 'epmr eqtw hvnw jdpk'
 EMAIL_USE_TLS = True
 
 

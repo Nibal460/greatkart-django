@@ -1,8 +1,12 @@
 from multiprocessing import AuthenticationError
 #from readline import get_current_history_length
 from telnetlib import AUTHENTICATION
+from urllib.request import Request
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
+from django.template import RequestContext
+
+from carts.models import Cart, CartItem
 from .forms import RegistrationForm
 from .models import Account
 from django.contrib import messages, auth
@@ -18,9 +22,8 @@ from django.core.mail import EmailMessage
 
 from django.utils.encoding import force_bytes
 from django.urls import reverse
-
-
-
+from carts.views import _cart_id
+import requests 
 
 
 
@@ -62,20 +65,71 @@ def register(request):
 
 def login(request):
     
+    
     if request.method == 'POST':
         email=request.POST['email']
         password=request.POST['password']
         
         user= auth.authenticate(email=email, password=password)
         
-        
         if user is not None:
-            auth.login(request, user)
-            # messages.success(request,"You are now logged in.")
-            return redirect('home')
+           try:
+               cart = Cart.objects.get(cart_id=_cart_id(request))
+               is_cart_item_exists = CartItem.objects.filter(cart=cart).exists()
+               if is_cart_item_exists:
+                  cart_item = CartItem.objects.filter(cart=cart)
+                  
+                  product_variation= []
+                  for item in cart_item:
+                      variation =item.variations.all()
+                      product_variation.append(list(variation))
+                      
+                      
+                  cart_item = CartItem.objects.filter(user=user)
+                  ex_var_list= []
+                  id= []
+                  for item in cart_item:
+                      existing_variation= item.variations.all()
+                      ex_var_list.append(list(existing_variation))
+                      id.append(item.id)
+                        
+                 # product_variation = [1,2,3,4,5,6]   
+                 # ex_var_list = [4,6,3,5]
+                  for pr in product_variation:
+                      if pr in ex_var_list:
+                          index = ex_var_list.index(pr)
+                          item_id = id[index]
+                          item = CartItem.objects.get(id=item_id)
+                          item.quantity+=1
+                          item.user = user
+                          item.save()
+                      else:
+                          cart_item = CartItem.objects.filter(cart=cart)
+                          for item in cart_item:
+                              item.user = user
+                              item.save()
+                              
+                      
+                      
+           except:
+               
+               pass
+           auth.login(request, user)
+           messages.success(request,'You are now logged in.')
+           url = request.META.get('HTTP_REFERER')
+           try:
+               query = requests.utils.urlparse(url).query
+              
+               params= dict(x.split('=') for x in query.split('&'))
+               if 'next' in params:
+                   nextpage= params['next']
+                   return redirect(nextpage)
+               
+           except:
+                return redirect('dashboard')
         else:
-            messages.error(request,'invalid login credentials')
-            return redirect('login')
+                 messages.error(request,'invalid login credentials')
+                 return redirect('login')
     return render(request,'accounts/login.html')
 
 @login_required(login_url='login')
@@ -113,9 +167,10 @@ def forgotPassword(request):
         email=request.POST['email']
         if Account.objects.filter(email=email).exists():
             user=Account.objects.get(email__exact=email)
+            
             # Reset password email
             current_site = get_current_site(request)
-            mail_subject = 'please activate your account'
+            mail_subject = 'Reset Your Password'  #please activate your account
             message= render_to_string('accounts/reset_password_email.html', {
                 'user': user,
                 'domain': current_site,
@@ -125,6 +180,7 @@ def forgotPassword(request):
             to_email=email
             send_email=EmailMessage(mail_subject, message, to=[to_email])
             send_email.send()
+            
             messages.success(request, 'Password reset email has been sent to your email address.')
             return redirect('login')
         else:
@@ -161,7 +217,8 @@ def resetPassword(request):
             messages.success(request,'Password reset successuful')
             return redirect('login')
         else:
-            messages.error(request,'Password doesn not match')
+            messages.error(request,'Password do not match')
             return redirect('resetPassword')
-    return render(request,'accounts/resetPassword.html')
+    else:
+        return render(request,'accounts/resetPassword.html')
     
