@@ -1,0 +1,7 @@
+my last django version:
+4.0.3
+
+the solution was
+to downgrade the django version
+I read it here:
+https://stackoverflow.com/questions/70656495/importerror-cannot-import-name-ugettext-lazy
