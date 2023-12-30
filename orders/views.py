@@ -51,7 +51,7 @@ def payments(request):
 
         
         # Reduce the quantity of the sold products
-        product = Product.objects.get(id+item.product_id)
+        product = Product.objects.get(id=item.product_id)
         product.stock -= item.quantity
         product.save()
    
